@@ -107,15 +107,19 @@ const Q = [
    o:["8e étage","19e étage","30e étage"], a:2,
    x:"La bibliothèque se trouve dans l'IGH haut, au 30e étage."},
   {place:"Le Bastion", q:"Par quel étage peut-on accéder au Bastion ?",
-   o:["6e étage","8e étage","19e étage"], a:1, x:"Par le 8e, le même étage que la cantine."}
+   o:["6e étage","8e étage","19e étage"], a:1, x:"Par le 8e, le même étage que la cantine."},
+  {place:"Question bonus", b:true, q:"Je travaille dans l'IGH bas (8e-18e étages), hors 16e étage. Quelle batterie d'ascenseurs dois-je prendre ?",
+   o:["Batterie sud (à gauche des portillons d'accès à l'IGH)","Batterie nord (à droite des portillons d'accès à l'IGH)"], a:0,
+   x:"Batterie sud, sauf pour l'accès au 16e étage, qui ne se fait que depuis la batterie nord. La batterie nord est la seule accessible pour les IGH médian et haut : elle doit donc être réservée à leurs occupants, afin de fluidifier les circulations. Utiliser la batterie sud vous garantit un accès plus rapide à votre étage !"}
 ];
 const OK=["Bien vu !","Exact !","Bravo !","Parfait !","Dans le mille !","Tout juste !"];
 const KO=["Pas tout à fait.","Raté, de peu.","Presque !","Pas cette fois."];
-const scored = Q.filter(q=>q.a!==null).length;
+const scored = Q.filter(q=>q.a!==null&&!q.b).length;
 let S = {step:"start", team:"", i:0, picks:[]};
 const app = document.getElementById("app");
 const esc = s => s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const score = () => S.picks.reduce((n,p,i)=>n+(Q[i].a!==null&&p===Q[i].a?1:0),0);
+const score = () => S.picks.reduce((n,p,i)=>n+(Q[i].a!==null&&!Q[i].b&&p===Q[i].a?1:0),0);
+const bonusOk = () => Q.some((q,i)=>q.b&&S.picks[i]===q.a);
 
 function render(){
   if(S.step==="start") return start();
@@ -163,12 +167,15 @@ function end(){
   app.innerHTML = `
     <p class="eyebrow">Votre résultat</p>
     <div class="score">${s}<small> / ${scored}</small></div>
+    ${bonusOk()?`<p class="place">+1 point bonus</p>`:""}
     <p>${msg}</p>
     <p class="muted">Merci d'avoir participé à la visite du tribunal judiciaire.</p>
     <ul class="recap">${Q.map((q,i)=>{
-      const p=S.picks[i], bonus=q.a===null, ok=!bonus&&p===q.a;
-      return `<li><span class="m ${bonus?"o":ok?"y":"n"}">${bonus?"★":ok?"✓":"✗"}</span>
-        <span>${q.q}<em>${bonus?"Bonus · votre réponse : "+q.o[p]:"Réponse : "+q.o[q.a]}</em></span></li>`;
+      const p=S.picks[i], open=q.a===null, ok=!open&&p===q.a;
+      const mark = open?"★":ok?"✓":"✗", cls = open?"o":ok?"y":"n";
+      const note = open?"Bonus · votre réponse : "+q.o[p]:(q.b?"Bonus · réponse : ":"Réponse : ")+q.o[q.a];
+      return `<li><span class="m ${cls}">${mark}</span>
+        <span>${q.q}<em>${note}</em></span></li>`;
     }).join("")}</ul>
     <div class="row"><button class="btn ghost" id="again">Rejouer</button></div>`;
   document.getElementById("again").onclick=()=>{S={step:"start",team:S.team,i:0,picks:[]};render();};
